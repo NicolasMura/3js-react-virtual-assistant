@@ -32,9 +32,15 @@ npx nx dev frontend
 
 Get individual morph targets for your Avatar:
 
-https://models.readyplayer.me/67659cd24e3fb1aab8817dd4.glb?morphTargets=Oculus Visemes
+https://models.readyplayer.me/6765b17acceb762d9021d41d.glb?morphTargets=Oculus Visemes
 
 Additional doc:
 
 - https://docs.readyplayer.me/ready-player-me/api-reference/avatars/morph-targets/oculus-ovr-libsync
 - https://docs.readyplayer.me/ready-player-me/api-reference/rest-api/avatars/get-3d-avatars
+
+Generate the Avatar component from the GLB file with `gltfjsx` library :
+
+```shell
+npx gltfjsx@latest apps/frontend/public/models/6765b17acceb762d9021d41d.glb -o apps/frontend/src/components/avatar.tsx -r public -t
+```

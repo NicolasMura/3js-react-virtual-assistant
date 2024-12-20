@@ -1,15 +1,16 @@
 'use client';
 
+import { Canvas } from '@react-three/fiber';
+import { Experience } from '../components/experience';
 import styles from './page.module.scss';
 
 export default function HomePage() {
   return (
     <div className={styles.page}>
-      <div className="wrapper">
-        <div className="container">
-          <h1>Hello!</h1>
-        </div>
-      </div>
+      <Canvas shadows camera={{ position: [0, 0, 8], fov: 42 }}>
+        <color attach="background" args={['#ececec']} />
+        <Experience />
+      </Canvas>
     </div>
   );
 }
