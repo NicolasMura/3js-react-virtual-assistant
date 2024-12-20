@@ -1,0 +1,13 @@
+{
+  "name": "@3js-react-virtual-assistant/source",
+  "version": "0.0.0",
+  "license": "MIT",
+  "scripts": {},
+  "private": true,
+  "dependencies": {},
+  "devDependencies": {
+    "@nx/js": "20.2.2",
+    "@nx/workspace": "20.2.2",
+    "nx": "20.2.2"
+  }
+}
