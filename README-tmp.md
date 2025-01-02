@@ -20,8 +20,9 @@ https://nextjs.org/docs/app/getting-started/installation#ide-plugin
 Three JS :
 
 ```shell
-yarn add three @react-three/fiber @react-three/drei leva
-yarn add -D  @types/three
+yarn add three @react-three/fiber @react-three/drei@9.75 leva
+# !!! @To_investigate: smooth animations transitions don't work with @react-three/drei > 9.75
+yarn add -D @types/three
 ```
 
 Start
@@ -30,9 +31,9 @@ Start
 npx nx dev frontend
 ```
 
-Get individual morph targets for your Avatar:
+Get your favorite avatar with ARKit & Oculus Visemes compatible morph targets:
 
-https://models.readyplayer.me/6765b17acceb762d9021d41d.glb?morphTargets=Oculus Visemes
+https://models.readyplayer.me/6765b17acceb762d9021d41d.glb?morphTargets=ARKit,Oculus Visemes
 
 Additional doc:
 

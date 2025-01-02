@@ -8,7 +8,7 @@
   },
   "private": true,
   "dependencies": {
-    "@react-three/drei": "^9.120.4",
+    "@react-three/drei": "9.75",
     "@react-three/fiber": "^8.17.10",
     "leva": "^0.9.35",
     "next": "14.2.16",

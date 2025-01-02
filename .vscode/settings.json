@@ -6,7 +6,7 @@
   "[jsonc]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
   "[markdown]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
   "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
-  "cSpell.words": [""],
+  "cSpell.words": ["GLTF", "drei", "viseme", "lipsync", "lerp"],
   "editor.codeActionsOnSave": {
     "source.organizeImports": "explicit"
   },
