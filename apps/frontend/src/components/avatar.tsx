@@ -4,9 +4,9 @@ Command: npx gltfjsx@latest apps/frontend/public/models/6765b17acceb762d9021d41d
 */
 
 import { useAnimations, useFBX, useGLTF } from '@react-three/drei';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useLoader } from '@react-three/fiber';
 import { button, useControls } from 'leva';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTF } from 'three-stdlib';
 
@@ -82,7 +82,24 @@ const facialExpressions = {
   },
 };
 
-const corresponding = {
+type MouthCues = {
+  start: number;
+  end: number;
+  value: string;
+};
+
+type Visemes =
+  | 'viseme_PP'
+  | 'viseme_kk'
+  | 'viseme_I'
+  | 'viseme_AA'
+  | 'viseme_O'
+  | 'viseme_U'
+  | 'viseme_FF'
+  | 'viseme_TH'
+  | 'viseme_PP';
+
+const corresponding: Record<string, Visemes> = {
   A: 'viseme_PP',
   B: 'viseme_kk',
   C: 'viseme_I',
@@ -103,6 +120,38 @@ export function Avatar(props: JSX.IntrinsicElements['group']) {
   const { nodes, materials, scene } = useGLTF(
     'models/6765b17acceb762d9021d41d.glb'
   ) as GLTFResult;
+
+  // useControls('Audio', {
+  //   chat: button(() => chat()),
+  // });
+  const { playAudio, script } = useControls('Audio', {
+    playAudio: false,
+    script: {
+      value: 'welcome',
+      options: ['welcome', 'pizzas', 'cocktail'],
+    },
+  });
+
+  const audio = useMemo(() => new Audio(`audios/${script}.mp3`), [script]);
+  const jsonFile = useLoader(
+    THREE.FileLoader,
+    `audios/${script}.json`
+  ) as string;
+  const lipsync: { mouthCues: MouthCues[] } = JSON.parse(jsonFile);
+
+  useEffect(() => {
+    if (playAudio) {
+      audio.play();
+      if (script === 'cocktail') {
+        setAnimation('Talking_0');
+      } else {
+        setAnimation('Talking_1');
+      }
+    } else {
+      setAnimation('Idle_0');
+      audio.pause();
+    }
+  }, [playAudio, script, audio]);
 
   // useEffect(() => {
   //   // console.log(message);
@@ -155,10 +204,6 @@ export function Avatar(props: JSX.IntrinsicElements['group']) {
     };
   }, [animation, actions, mixer]);
 
-  useFrame((state) => {
-    group?.current?.getObjectByName('Head')?.lookAt(state.camera.position);
-  });
-
   const [blink, setBlink] = useState(false);
   const [winkLeft, setWinkLeft] = useState(false);
   const [winkRight, setWinkRight] = useState(false);
@@ -166,6 +211,8 @@ export function Avatar(props: JSX.IntrinsicElements['group']) {
     useState<keyof typeof facialExpressions>('default');
 
   useFrame((state) => {
+    group?.current?.getObjectByName('Head')?.lookAt(state.camera.position);
+
     !setupMode &&
       nodes.EyeLeft.morphTargetDictionary &&
       Object.keys(nodes.EyeLeft.morphTargetDictionary).forEach((key) => {
@@ -187,9 +234,11 @@ export function Avatar(props: JSX.IntrinsicElements['group']) {
     if (setupMode) {
       return;
     }
-    // const appliedMorphTargets = [];
-    // if (message && lipsync) {
+
+    // const appliedMorphTargets: string[] = [];
+    // if (lipsync) {
     //   const currentAudioTime = audio.currentTime;
+
     //   for (let i = 0; i < lipsync.mouthCues.length; i++) {
     //     const mouthCue = lipsync.mouthCues[i];
     //     if (
@@ -208,6 +257,69 @@ export function Avatar(props: JSX.IntrinsicElements['group']) {
     //   }
     //   lerpMorphTarget(value, 0, 0.1);
     // });
+
+    const currentAudioTime = audio.currentTime;
+    if (audio.paused || audio.ended) {
+      setAnimation('Idle_0');
+      return;
+    }
+
+    Object.values(corresponding).forEach((value) => {
+      nodes.Wolf3D_Head.morphTargetInfluences[
+        nodes.Wolf3D_Head.morphTargetDictionary[value]
+      ] = THREE.MathUtils.lerp(
+        nodes.Wolf3D_Head.morphTargetInfluences[
+          nodes.Wolf3D_Head.morphTargetDictionary[value]
+        ],
+        0,
+        0.5
+      );
+
+      nodes.Wolf3D_Teeth.morphTargetInfluences[
+        nodes.Wolf3D_Teeth.morphTargetDictionary[value]
+      ] = THREE.MathUtils.lerp(
+        nodes.Wolf3D_Teeth.morphTargetInfluences[
+          nodes.Wolf3D_Teeth.morphTargetDictionary[value]
+        ],
+        0,
+        0.5
+      );
+    });
+
+    for (let i = 0; i < lipsync.mouthCues.length; i++) {
+      const mouthCue = lipsync.mouthCues[i];
+      if (
+        currentAudioTime >= mouthCue.start &&
+        currentAudioTime <= mouthCue.end
+      ) {
+        nodes.Wolf3D_Head.morphTargetInfluences[
+          nodes.Wolf3D_Head.morphTargetDictionary[corresponding[mouthCue.value]]
+        ] = THREE.MathUtils.lerp(
+          nodes.Wolf3D_Head.morphTargetInfluences[
+            nodes.Wolf3D_Head.morphTargetDictionary[
+              corresponding[mouthCue.value]
+            ]
+          ],
+          1,
+          0.5
+        );
+        nodes.Wolf3D_Teeth.morphTargetInfluences[
+          nodes.Wolf3D_Teeth.morphTargetDictionary[
+            corresponding[mouthCue.value]
+          ]
+        ] = THREE.MathUtils.lerp(
+          nodes.Wolf3D_Teeth.morphTargetInfluences[
+            nodes.Wolf3D_Teeth.morphTargetDictionary[
+              corresponding[mouthCue.value]
+            ]
+          ],
+          1,
+          0.5
+        );
+
+        break;
+      }
+    }
   });
 
   const lerpMorphTarget = (target: string, value: number, speed = 0.1) => {
@@ -245,7 +357,6 @@ export function Avatar(props: JSX.IntrinsicElements['group']) {
   };
 
   useControls('FacialExpressions', {
-    // chat: button(() => chat()),
     winkLeft: button(() => {
       setWinkLeft(true);
       setTimeout(() => setWinkLeft(false), 300);

@@ -45,3 +45,19 @@ Generate the Avatar component from the GLB file with `gltfjsx` library :
 ```shell
 npx gltfjsx@latest apps/frontend/public/models/6765b17acceb762d9021d41d.glb -o apps/frontend/src/components/avatar.tsx -r public -t
 ```
+
+Conversion MP3 -> WAV/OGG:
+
+```shell
+ffmpeg -y -i apps/frontend/public/audios/${message}.mp3 apps/frontend/public/audios/${message}.wav
+ffmpeg -y -i apps/frontend/public/audios/${message}.mp3 apps/frontend/public/audios/${message}.ogg
+```
+
+Online utility: https://convertio.co
+
+Generate mouthCues Json file from WAV audio file, that will contain all the data for the lips synchronisation:
+
+```shell
+./bin/rhubarb -f json -o apps/frontend/public/audios/${message}.json apps/frontend/public/audios/${message}.wav -r phonetic
+./bin/rhubarb -f json -o apps/frontend/public/audios/${message}.json apps/frontend/public/audios/${message}.ogg -r phonetic
+```
