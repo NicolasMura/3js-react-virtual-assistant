@@ -20,8 +20,8 @@ https://nextjs.org/docs/app/getting-started/installation#ide-plugin
 Three JS :
 
 ```shell
-yarn add three @react-three/fiber @react-three/drei@9.75 leva
-# !!! @To_investigate: smooth animations transitions don't work with @react-three/drei > 9.75
+yarn add three @react-three/fiber @react-three/drei@9.79 leva
+# !!! @To_investigate: smooth animation transition does work with @react-three/drei > 9.79
 yarn add -D @types/three
 ```
 

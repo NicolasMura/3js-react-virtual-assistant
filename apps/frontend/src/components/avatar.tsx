@@ -7,38 +7,44 @@ import { useAnimations, useFBX, useGLTF } from '@react-three/drei';
 import { useFrame, useLoader } from '@react-three/fiber';
 import { button, useControls } from 'leva';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import * as THREE from 'three';
+import {
+  Bone,
+  FileLoader,
+  Group,
+  MathUtils,
+  MeshStandardMaterial,
+  SkinnedMesh,
+} from 'three';
 import { GLTF } from 'three-stdlib';
 
 type GLTFResult = GLTF & {
   nodes: {
-    Wolf3D_Hair: THREE.SkinnedMesh;
-    Wolf3D_Glasses: THREE.SkinnedMesh;
-    Wolf3D_Body: THREE.SkinnedMesh;
-    Wolf3D_Outfit_Bottom: THREE.SkinnedMesh;
-    Wolf3D_Outfit_Footwear: THREE.SkinnedMesh;
-    Wolf3D_Outfit_Top: THREE.SkinnedMesh;
-    EyeLeft: THREE.SkinnedMesh & {
+    Wolf3D_Hair: SkinnedMesh;
+    Wolf3D_Glasses: SkinnedMesh;
+    Wolf3D_Body: SkinnedMesh;
+    Wolf3D_Outfit_Bottom: SkinnedMesh;
+    Wolf3D_Outfit_Footwear: SkinnedMesh;
+    Wolf3D_Outfit_Top: SkinnedMesh;
+    EyeLeft: SkinnedMesh & {
       morphTargetDictionary: Record<string, number>;
       morphTargetInfluences: number[];
     };
-    EyeRight: THREE.SkinnedMesh;
-    Wolf3D_Head: THREE.SkinnedMesh;
-    Wolf3D_Teeth: THREE.SkinnedMesh;
-    Hips: THREE.Bone;
+    EyeRight: SkinnedMesh;
+    Wolf3D_Head: SkinnedMesh;
+    Wolf3D_Teeth: SkinnedMesh;
+    Hips: Bone;
   };
   materials: {
-    Wolf3D_Hair: THREE.MeshStandardMaterial;
-    Wolf3D_Glasses: THREE.MeshStandardMaterial;
-    Wolf3D_Body: THREE.MeshStandardMaterial;
-    Wolf3D_Outfit_Bottom: THREE.MeshStandardMaterial;
-    Wolf3D_Outfit_Footwear: THREE.MeshStandardMaterial;
-    Wolf3D_Outfit_Top: THREE.MeshStandardMaterial;
-    Wolf3D_Eye: THREE.MeshStandardMaterial;
-    Wolf3D_Skin: THREE.MeshStandardMaterial;
-    Wolf3D_Teeth: THREE.MeshStandardMaterial;
+    Wolf3D_Hair: MeshStandardMaterial;
+    Wolf3D_Glasses: MeshStandardMaterial;
+    Wolf3D_Body: MeshStandardMaterial;
+    Wolf3D_Outfit_Bottom: MeshStandardMaterial;
+    Wolf3D_Outfit_Footwear: MeshStandardMaterial;
+    Wolf3D_Outfit_Top: MeshStandardMaterial;
+    Wolf3D_Eye: MeshStandardMaterial;
+    Wolf3D_Skin: MeshStandardMaterial;
+    Wolf3D_Teeth: MeshStandardMaterial;
   };
-  // animations: GLTFAction[];
 };
 
 const facialExpressions = {
@@ -133,20 +139,18 @@ export function Avatar(props: JSX.IntrinsicElements['group']) {
   });
 
   const audio = useMemo(() => new Audio(`audios/${script}.mp3`), [script]);
-  const jsonFile = useLoader(
-    THREE.FileLoader,
-    `audios/${script}.json`
-  ) as string;
-  const lipsync: { mouthCues: MouthCues[] } = JSON.parse(jsonFile);
+  const jsonFile = useLoader(FileLoader, `audios/${script}.json`);
+  const lipsync: { mouthCues: MouthCues[] } = JSON.parse(jsonFile as string);
 
   useEffect(() => {
     if (playAudio) {
       audio.play();
-      if (script === 'cocktail') {
-        setAnimation('Talking_0');
-      } else {
-        setAnimation('Talking_1');
-      }
+      setAnimation('Drunk');
+      // if (script === 'cocktail') {
+      //   setAnimation('Talking_0');
+      // } else {
+      //   setAnimation('Talking_1');
+      // }
     } else {
       setAnimation('Idle_0');
       audio.pause();
@@ -174,26 +178,28 @@ export function Avatar(props: JSX.IntrinsicElements['group']) {
   const { animations: idleAnimation_1 } = useFBX('animations/Idle_1.fbx');
   const { animations: talkingAnimation_0 } = useFBX('animations/Talking_0.fbx');
   const { animations: talkingAnimation_1 } = useFBX('animations/Talking_1.fbx');
+  const { animations: drunkAnimation } = useFBX('animations/Drunk.fbx');
 
   idleAnimation_0[0].name = 'Idle_0';
   idleAnimation_1[0].name = 'Idle_1';
   talkingAnimation_0[0].name = 'Talking_0';
   talkingAnimation_1[0].name = 'Talking_1';
+  drunkAnimation[0].name = 'Drunk';
 
   const animations = [
     idleAnimation_0[0],
     idleAnimation_1[0],
     talkingAnimation_0[0],
     talkingAnimation_1[0],
+    drunkAnimation[0],
   ];
 
   const [animation, setAnimation] = useState<string>('Idle_0');
-  const group = useRef<THREE.Group>(null);
+  const group = useRef<Group>(null);
 
   const { actions, mixer } = useAnimations(animations, group);
 
   useEffect(() => {
-    // actions[animation].reset().fadeIn(0.5).play();
     actions[animation]
       ?.reset()
       // @ts-expect-error mixer is not typed
@@ -211,8 +217,11 @@ export function Avatar(props: JSX.IntrinsicElements['group']) {
     useState<keyof typeof facialExpressions>('default');
 
   useFrame((state) => {
+    // Avatar looks at the camera
     group?.current?.getObjectByName('Head')?.lookAt(state.camera.position);
 
+    // FACIAL EXPRESSIONS
+    // We use nodes.EyeLeft.morphTargetDictionary as the dictionnary reference for all morph targets
     !setupMode &&
       nodes.EyeLeft.morphTargetDictionary &&
       Object.keys(nodes.EyeLeft.morphTargetDictionary).forEach((key) => {
@@ -235,6 +244,7 @@ export function Avatar(props: JSX.IntrinsicElements['group']) {
       return;
     }
 
+    // Le bloc ci-dessous ne marche pas - à investiguer
     // const appliedMorphTargets: string[] = [];
     // if (lipsync) {
     //   const currentAudioTime = audio.currentTime;
@@ -260,30 +270,34 @@ export function Avatar(props: JSX.IntrinsicElements['group']) {
 
     const currentAudioTime = audio.currentTime;
     if (audio.paused || audio.ended) {
-      setAnimation('Idle_0');
+      // setAnimation('Idle_0');
       return;
     }
 
-    Object.values(corresponding).forEach((value) => {
-      nodes.Wolf3D_Head.morphTargetInfluences[
-        nodes.Wolf3D_Head.morphTargetDictionary[value]
-      ] = THREE.MathUtils.lerp(
-        nodes.Wolf3D_Head.morphTargetInfluences[
-          nodes.Wolf3D_Head.morphTargetDictionary[value]
-        ],
-        0,
-        0.5
-      );
+    const headMorphTargetDictionary = nodes.Wolf3D_Head.morphTargetDictionary;
+    const headMorphTargetInfluences = nodes.Wolf3D_Head.morphTargetInfluences;
 
-      nodes.Wolf3D_Teeth.morphTargetInfluences[
-        nodes.Wolf3D_Teeth.morphTargetDictionary[value]
-      ] = THREE.MathUtils.lerp(
-        nodes.Wolf3D_Teeth.morphTargetInfluences[
-          nodes.Wolf3D_Teeth.morphTargetDictionary[value]
-        ],
-        0,
-        0.5
-      );
+    const teethMorphTargetDictionary = nodes.Wolf3D_Teeth.morphTargetDictionary;
+    const teethMorphTargetInfluences = nodes.Wolf3D_Teeth.morphTargetInfluences;
+
+    Object.values(corresponding).forEach((value) => {
+      if (headMorphTargetDictionary && headMorphTargetInfluences) {
+        headMorphTargetInfluences[headMorphTargetDictionary[value]] =
+          MathUtils.lerp(
+            headMorphTargetInfluences[headMorphTargetDictionary[value]],
+            0,
+            0.5
+          );
+      }
+
+      if (teethMorphTargetDictionary && teethMorphTargetInfluences) {
+        teethMorphTargetInfluences[teethMorphTargetDictionary[value]] =
+          MathUtils.lerp(
+            teethMorphTargetInfluences[teethMorphTargetDictionary[value]],
+            0,
+            0.5
+          );
+      }
     });
 
     for (let i = 0; i < lipsync.mouthCues.length; i++) {
@@ -292,30 +306,29 @@ export function Avatar(props: JSX.IntrinsicElements['group']) {
         currentAudioTime >= mouthCue.start &&
         currentAudioTime <= mouthCue.end
       ) {
-        nodes.Wolf3D_Head.morphTargetInfluences[
-          nodes.Wolf3D_Head.morphTargetDictionary[corresponding[mouthCue.value]]
-        ] = THREE.MathUtils.lerp(
-          nodes.Wolf3D_Head.morphTargetInfluences[
-            nodes.Wolf3D_Head.morphTargetDictionary[
-              corresponding[mouthCue.value]
-            ]
-          ],
-          1,
-          0.5
-        );
-        nodes.Wolf3D_Teeth.morphTargetInfluences[
-          nodes.Wolf3D_Teeth.morphTargetDictionary[
-            corresponding[mouthCue.value]
-          ]
-        ] = THREE.MathUtils.lerp(
-          nodes.Wolf3D_Teeth.morphTargetInfluences[
-            nodes.Wolf3D_Teeth.morphTargetDictionary[
-              corresponding[mouthCue.value]
-            ]
-          ],
-          1,
-          0.5
-        );
+        if (headMorphTargetDictionary && headMorphTargetInfluences) {
+          headMorphTargetInfluences[
+            headMorphTargetDictionary[corresponding[mouthCue.value]]
+          ] = MathUtils.lerp(
+            headMorphTargetInfluences[
+              headMorphTargetDictionary[corresponding[mouthCue.value]]
+            ],
+            1,
+            0.5
+          );
+        }
+
+        if (teethMorphTargetDictionary && teethMorphTargetInfluences) {
+          teethMorphTargetInfluences[
+            teethMorphTargetDictionary[corresponding[mouthCue.value]]
+          ] = MathUtils.lerp(
+            teethMorphTargetInfluences[
+              teethMorphTargetDictionary[corresponding[mouthCue.value]]
+            ],
+            1,
+            0.5
+          );
+        }
 
         break;
       }
@@ -325,7 +338,7 @@ export function Avatar(props: JSX.IntrinsicElements['group']) {
   const lerpMorphTarget = (target: string, value: number, speed = 0.1) => {
     scene.traverse((child) => {
       if (
-        child instanceof THREE.SkinnedMesh &&
+        child instanceof SkinnedMesh &&
         child.isSkinnedMesh &&
         child.morphTargetDictionary
       ) {
@@ -337,7 +350,7 @@ export function Avatar(props: JSX.IntrinsicElements['group']) {
         ) {
           return;
         }
-        child.morphTargetInfluences[index] = THREE.MathUtils.lerp(
+        child.morphTargetInfluences[index] = MathUtils.lerp(
           child.morphTargetInfluences[index],
           value,
           speed
@@ -406,7 +419,7 @@ export function Avatar(props: JSX.IntrinsicElements['group']) {
           [key]: {
             label: key,
             value: 0,
-            min: (nodes.EyeLeft.morphTargetInfluences || [])[
+            min: nodes.EyeLeft.morphTargetInfluences[
               nodes.EyeLeft.morphTargetDictionary[key]
             ],
             max: 1,
@@ -431,7 +444,7 @@ export function Avatar(props: JSX.IntrinsicElements['group']) {
           setBlink(false);
           nextBlink();
         }, 200);
-      }, THREE.MathUtils.randInt(1000, 5000));
+      }, MathUtils.randInt(1000, 5000));
     };
     nextBlink();
     return () => clearTimeout(blinkTimeout);

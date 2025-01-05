@@ -8,13 +8,13 @@
   },
   "private": true,
   "dependencies": {
-    "@react-three/drei": "9.75",
+    "@react-three/drei": "9.79",
     "@react-three/fiber": "^8.17.10",
     "leva": "^0.9.35",
     "next": "14.2.16",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "three": "^0.171.0"
+    "three": "^0.172.0"
   },
   "devDependencies": {
     "@eslint/compat": "^1.1.1",
