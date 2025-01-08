@@ -16,6 +16,7 @@ import {
   SkinnedMesh,
 } from 'three';
 import { GLTF } from 'three-stdlib';
+import { useChat } from '../app/hooks/useChat';
 
 type GLTFResult = GLTF & {
   nodes: {
@@ -48,7 +49,7 @@ type GLTFResult = GLTF & {
 };
 
 const facialExpressions = {
-  default: {},
+  neutral: {},
   smile: {
     browInnerUp: 0.17,
     eyeSquintLeft: 0.4,
@@ -58,7 +59,7 @@ const facialExpressions = {
     mouthPressLeft: 0.61,
     mouthPressRight: 0.41000000000000003,
   },
-  dedain: {
+  disdain: {
     mouthShrugLower: 1,
     mouthShrugUpper: 1,
     noseSneerLeft: 1,
@@ -86,7 +87,55 @@ const facialExpressions = {
     mouthFrownRight: 0.33,
     mouthLowerDownLeft: 0.54,
   },
+  angry: {
+    browDownLeft: 1,
+    browDownRight: 1,
+    eyeSquintLeft: 1,
+    eyeSquintRight: 1,
+    jawForward: 1,
+    jawLeft: 1,
+    mouthShrugLower: 1,
+    noseSneerLeft: 1,
+    noseSneerRight: 0.42,
+    eyeLookDownLeft: 0.16,
+    eyeLookDownRight: 0.16,
+    cheekSquintLeft: 1,
+    cheekSquintRight: 1,
+    mouthClose: 0.23,
+    mouthFunnel: 0.63,
+    mouthDimpleRight: 1,
+  },
+  funnyFace: {
+    jawLeft: 0.63,
+    mouthPucker: 0.53,
+    noseSneerLeft: 1,
+    noseSneerRight: 0.39,
+    mouthLeft: 1,
+    eyeLookInLeft: 1,
+    eyeLookInRight: 1,
+    eyeLookUpLeft: 1,
+    eyeLookUpRight: 1,
+    cheekPuff: 0.9999924982764238,
+    mouthDimpleLeft: 0.414743888682652,
+    mouthRollLower: 0.32,
+    mouthSmileLeft: 0.35499733688813034,
+    mouthSmileRight: 0.35499733688813034,
+  },
+  sad: {
+    eyeWideLeft: 0.5,
+    eyeWideRight: 0.5,
+    mouthFrownLeft: 0.7,
+    mouthFrownRight: 0.7,
+    mouthShrugLower: 0.78341,
+    browInnerUp: 0.452,
+    eyeSquintLeft: 0.72,
+    eyeSquintRight: 0.75,
+    eyeLookDownLeft: 0.5,
+    eyeLookDownRight: 0.5,
+  },
 };
+
+export type FacialExpression = keyof typeof facialExpressions;
 
 type MouthCues = {
   start: number;
@@ -127,9 +176,15 @@ export function Avatar(props: JSX.IntrinsicElements['group']) {
     'models/6765b17acceb762d9021d41d.glb'
   ) as GLTFResult;
 
-  // useControls('Audio', {
-  //   chat: button(() => chat()),
-  // });
+  const { message, onMessagePlayed, chat } = useChat();
+
+  const [lipsync, setLipsync] = useState<{ mouthCues: MouthCues[] }>({
+    mouthCues: [],
+  });
+
+  useControls('Audio', {
+    chatTest: button(() => chat()),
+  });
   const { playAudio, script } = useControls('Audio', {
     playAudio: false,
     script: {
@@ -138,41 +193,38 @@ export function Avatar(props: JSX.IntrinsicElements['group']) {
     },
   });
 
-  const audio = useMemo(() => new Audio(`audios/${script}.mp3`), [script]);
+  const audioTest = useMemo(() => new Audio(`audios/${script}.mp3`), [script]);
   const jsonFile = useLoader(FileLoader, `audios/${script}.json`);
-  const lipsync: { mouthCues: MouthCues[] } = JSON.parse(jsonFile as string);
+  const lipsyncTest: { mouthCues: MouthCues[] } = JSON.parse(
+    jsonFile as string
+  );
 
   useEffect(() => {
+    console.log('useEffect test audio');
     if (playAudio) {
-      audio.play();
-      setAnimation('Drunk');
-      // if (script === 'cocktail') {
-      //   setAnimation('Talking_0');
-      // } else {
-      //   setAnimation('Talking_1');
-      // }
+      audioTest.play();
     } else {
-      setAnimation('Idle_0');
-      audio.pause();
+      audioTest.pause();
     }
-  }, [playAudio, script, audio]);
+  }, [playAudio, script, audioTest]);
 
-  // useEffect(() => {
-  //   // console.log(message);
-  //   console.log('BOB');
-  //   // if (!message) {
-  //   setAnimation('Breathing_Idle');
-  //   setFacialExpression('strange');
-  //   // }
-  //   // setAnimation(message.animation);
-  //   // setFacialExpression(message.facialExpression);
-  //   // setLipsync(message.lipsync);
-  //   // const audio = new Audio("data:audio/mp3;base64," + message.audio);
-  //   // audio.play();
-  //   // setAudio(audio);
-  //   // audio.onended = onMessagePlayed;
-  //   // }, [message]);
-  // }, []);
+  useEffect(() => {
+    console.log('useEffect message');
+    console.log(message);
+    if (!message) {
+      setAnimation('Idle_0');
+      setFacialExpression('neutral');
+      return;
+    }
+    setAnimation(message.animation);
+    setFacialExpression(message.facialExpression);
+    setLipsync(message.lipsync);
+    const audio = new Audio('data:audio/mp3;base64,' + message.audio);
+    audio.play();
+    setAudio(audio);
+    audio.onended = onMessagePlayed;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [message]);
 
   const { animations: idleAnimation_0 } = useFBX('animations/Idle_0.fbx');
   const { animations: idleAnimation_1 } = useFBX('animations/Idle_1.fbx');
@@ -214,7 +266,8 @@ export function Avatar(props: JSX.IntrinsicElements['group']) {
   const [winkLeft, setWinkLeft] = useState(false);
   const [winkRight, setWinkRight] = useState(false);
   const [facialExpression, setFacialExpression] =
-    useState<keyof typeof facialExpressions>('default');
+    useState<FacialExpression>('neutral');
+  const [audio, setAudio] = useState<HTMLAudioElement>();
 
   useFrame((state) => {
     // Avatar looks at the camera
@@ -244,33 +297,32 @@ export function Avatar(props: JSX.IntrinsicElements['group']) {
       return;
     }
 
-    // Le bloc ci-dessous ne marche pas - à investiguer
-    // const appliedMorphTargets: string[] = [];
-    // if (lipsync) {
-    //   const currentAudioTime = audio.currentTime;
+    const appliedMorphTargets: string[] = [];
+    if (lipsync && audio) {
+      const currentAudioTime = audio.currentTime;
 
-    //   for (let i = 0; i < lipsync.mouthCues.length; i++) {
-    //     const mouthCue = lipsync.mouthCues[i];
-    //     if (
-    //       currentAudioTime >= mouthCue.start &&
-    //       currentAudioTime <= mouthCue.end
-    //     ) {
-    //       appliedMorphTargets.push(corresponding[mouthCue.value]);
-    //       lerpMorphTarget(corresponding[mouthCue.value], 1, 0.2);
-    //       break;
-    //     }
-    //   }
-    // }
-    // Object.values(corresponding).forEach((value) => {
-    //   if (appliedMorphTargets.includes(value)) {
-    //     return;
-    //   }
-    //   lerpMorphTarget(value, 0, 0.1);
-    // });
+      for (let i = 0; i < lipsync.mouthCues.length; i++) {
+        const mouthCue = lipsync.mouthCues[i];
+        if (
+          currentAudioTime >= mouthCue.start &&
+          currentAudioTime <= mouthCue.end
+        ) {
+          appliedMorphTargets.push(corresponding[mouthCue.value]);
+          lerpMorphTarget(corresponding[mouthCue.value], 1, 0.2);
+          break;
+        }
+      }
+    }
+    Object.values(corresponding).forEach((value) => {
+      if (appliedMorphTargets.includes(value)) {
+        return;
+      }
+      lerpMorphTarget(value, 0, 0.1);
+    });
 
-    const currentAudioTime = audio.currentTime;
-    if (audio.paused || audio.ended) {
-      // setAnimation('Idle_0');
+    // LIPSYNC TEST
+    const currentAudioTime = audioTest.currentTime;
+    if (audioTest.paused || audioTest.ended) {
       return;
     }
 
@@ -300,8 +352,8 @@ export function Avatar(props: JSX.IntrinsicElements['group']) {
       }
     });
 
-    for (let i = 0; i < lipsync.mouthCues.length; i++) {
-      const mouthCue = lipsync.mouthCues[i];
+    for (let i = 0; i < lipsyncTest.mouthCues.length; i++) {
+      const mouthCue = lipsyncTest.mouthCues[i];
       if (
         currentAudioTime >= mouthCue.start &&
         currentAudioTime <= mouthCue.end
@@ -372,11 +424,11 @@ export function Avatar(props: JSX.IntrinsicElements['group']) {
   useControls('FacialExpressions', {
     winkLeft: button(() => {
       setWinkLeft(true);
-      setTimeout(() => setWinkLeft(false), 300);
+      setTimeout(() => setWinkLeft(false), 200);
     }),
     winkRight: button(() => {
       setWinkRight(true);
-      setTimeout(() => setWinkRight(false), 300);
+      setTimeout(() => setWinkRight(false), 200);
     }),
     animation: {
       value: animation,
@@ -443,7 +495,7 @@ export function Avatar(props: JSX.IntrinsicElements['group']) {
         setTimeout(() => {
           setBlink(false);
           nextBlink();
-        }, 200);
+        }, 100);
       }, MathUtils.randInt(1000, 5000));
     };
     nextBlink();
